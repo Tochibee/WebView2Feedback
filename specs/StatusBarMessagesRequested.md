@@ -4,107 +4,62 @@
   * Before submitting, delete all <!-- TEMPLATE marked comments in this file,
     and the following quote banner:
 -->
-> See comments in Markdown for how to use this spec template
-
-<!-- TEMPLATE
-  The purpose of this spec is to describe a new WebView2 feature and its APIs.
-
-  There are two audiences for the spec. The first are people
-  that want to evaluate and give feedback on the API, as part of
-  the submission process. When it's complete
-  it will be incorporated into the public documentation at
-  docs.microsoft.com (https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
-  Hopefully we'll be able to copy it mostly verbatim.
-  So the second audience is everyone that reads there to learn how
-  and why to use this API. 
--->
-
-
 # Background
-<!-- TEMPLATE
-    Use this section to provide background context for the new API(s)
-    in this spec. 
+The browser has a Status bar that displays text when hovering over a link. Currently, 
+Developers are able to opt in to disable showing the status bar through the browser 
+settings.
 
-    This section and the appendix are the only sections that likely
-    do not get copied into any official documentation, they're just an aid
-    to reading this spec. 
-    
-    If you're modifying an existing API, included a link here to the
-    existing page(s) or spec documentation.
-
-    For example, this section is a place to explain why you're adding this
-    API rather than modifying an existing API.
-
-    For example, this is a place to provide a brief explanation of some dependent
-    area, just explanation enough to understand this new API, rather than telling
-    the reader "go read 100 pages of background information posted at ...". 
--->
-
-In this document we describe the updated API. We'd appreciate your feedback.
-
-
+Developers would also like to be able to opt in to intercept the messages which would 
+normally be displayed by the Status bar, and show it using thier own custom UI. 
 # Description
-<!-- TEMPLATE
-    Use this section to provide a brief description of the feature.
+We propose a new event for WebView2, StatusBarMessages that would allow developers to 
+listen for Status bar messages which are triggered by user activity on the embedded 
+browser, and then handle those messages however they want in their applications.
 
-    For an example, see the introduction to the PasswordBox control
-    (http://docs.microsoft.com/windows/uwp/design/controls-and-patterns/password-box).
--->
+When the Status bar is triggered the developers will be able to access: 
+
+1) The text data which communicates a status from the browser
+2) A link which corresponds to whatever the user has their mouse over
 
 
 # Examples
-<!-- TEMPLATE
-    Use this section to explain the features of the API, showing
-    example code with each description in both C# (for our WinRT API or .NET API) and
-    in C++ for our COM API. Use snippets of the sample code you wrote for the sample apps.
+## Win32 C++ Registering a listener for status bar messages
+```
+CHECK_FAILURE(webview2->add_StatusBarMessages(
+    Callback<ICoreWebView2NavigationCompletedEventHandler>(
+        [this](ICoreWebView2* sender, ICoreWebView2StatusBarMessagesEventArgs* args) -> HRESULT {
 
-    The general format is:
+            BOOL is_url;
+            std::string message;
 
-    ## FirstFeatureName
+            CHECK_FAILURE(args->get_is_url(&url));
+            CHECK_FAILURE(args->get_message(&message));
 
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
+            if(is_url) {
+                // Handle url text in message
+            } else {
+                // Handle plain text in message
+            }
 
-    ```c#
-    void SampleMethod()
-    {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
+            return S_OK;
+        }
+    ).Get(),
+&m_statusBarMessages))
+```
+## C#/ .Net/ WinRT Registering a listener for status bar messages
+```
+webView.CoreWebView2.StatusBarMessages += (object sender, CoreWebView2StatusBarMessagesEventArgs arg) =>
+{
+    bool is_url = args.is_url;
+    string message = args.message;
+
+    if(is_url) {
+        // Handle url text in message
+    } else {
+         // Handle plain text in message
     }
-    ```
-    
-    ```cpp
-    void SampleClass::SampleMethod()
-    {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
-    }
-    ```
-
-    ## SecondFeatureName
-
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
-
-    ```c#
-    void SampleMethod()
-    {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
-    }
-    ```
-    
-    ```cpp
-    void SampleClass::SampleMethod()
-    {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
-    }
-    ```
-
-    As an example of this section, see the Examples section for the PasswordBox
-    control (https://docs.microsoft.com/windows/uwp/design/controls-and-patterns/password-box#examples). 
--->
-
-
+};
+```
 # Remarks
 <!-- TEMPLATE
     Explanation and guidance that doesn't fit into the Examples section.
@@ -167,6 +122,37 @@ In this document we describe the updated API. We'd appreciate your feedback.
     }
     ```
 -->
+```
+interface ICoreWebView2StatusBarMessagesEventHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2* sender,
+      [in] ICoreWebView2StatusBarMessagesEventArgs* args);
+}
+
+interface ICoreWebView2StatusBarMessagesEventArgs : IUnknown {
+    [propget] HRESULT is_url([out, retval] BOOL* is_url);
+    [propget] HRESULT message([out, retval] std::string* message);
+}
+```
+
+```
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2StatusBarMessagesEventArgs;
+
+    runtimeclass CoreWebView2StatusBarMessagesEventArgs {
+        string message {get;};
+        bool is_url {get;};
+    }
+
+    runtimeclass CoreWebView2
+    {
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2StatusBarMessagesEventArgs> StatusBarMessagesEvent;
+    }
+}
+```
 
 
 # Appendix
@@ -175,3 +161,4 @@ In this document we describe the updated API. We'd appreciate your feedback.
     that isn't necessary to understand the purpose and usage of the API.
     For example, implementation details or links to other resources.
 -->
+See here for more details about the Status bar: <a href="https://www.computerhope.com/jargon/s/statusbar.htm">Here</a>
